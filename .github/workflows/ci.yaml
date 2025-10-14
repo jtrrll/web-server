@@ -25,8 +25,8 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v20
       - name: Build all packages
         run: |
-          set -euxo pipefail
-          packageNames=$(nix eval --json ".#packages.x86_64-linux" | jq -r 'keys[]')
+          set -euo pipefail
+          mapfile -t packageNames < <(nix eval --json ".#packages.x86_64-linux" | jq -r 'keys[]')
           for package in "${packageNames[@]}"; do
             nix build .#${package} --no-link
           done

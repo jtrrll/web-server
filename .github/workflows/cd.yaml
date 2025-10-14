@@ -21,7 +21,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v20
       - name: Build Docker images
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           mkdir -p images
           packageNames=( caddyDockerImage grafanaDockerImage jaegerDockerImage lokiDockerImage portfolioDockerImage prometheusDockerImage )
           for package in "${packageNames[@]}"; do
