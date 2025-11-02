@@ -3,6 +3,10 @@
   dockerTools,
   runCommand,
   writeTextFile,
+  faktoryPort,
+  grafanaPort,
+  portfolioPort,
+  ttydPort,
 }:
 let
   baseImage = dockerTools.pullImage {
@@ -37,7 +41,7 @@ let
 
           ${domain} {
             handle {
-              reverse_proxy portfolio:8080
+              reverse_proxy portfolio:${builtins.toString portfolioPort}
             }
           }
 
@@ -59,17 +63,19 @@ let
             }
 
             handle /grafana* {
-              reverse_proxy grafana:3000 {
+              reverse_proxy grafana:${builtins.toString grafanaPort} {
                 header_up X-WEBAUTH-USER {http.auth.user}
               }
             }
 
-            handle /jaeger* {
-              reverse_proxy jaeger:16686
+            handle /faktory* {
+              reverse_proxy faktory:${builtins.toString faktoryPort} {
+                header_up X-Script-Name /faktory
+              }
             }
 
-            handle /prometheus* {
-              reverse_proxy prometheus:9090
+            handle_path /terminal/* {
+              reverse_proxy ttyd:${builtins.toString ttydPort}
             }
 
             handle {

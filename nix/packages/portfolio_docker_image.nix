@@ -16,7 +16,9 @@
   };
   config = {
     Cmd = [
-      (lib.getExe portfolio) # TODO: Pass port to application
+      (lib.getExe portfolio)
+      "--port"
+      "${builtins.toString port}"
     ];
     ExposedPorts = {
       "${builtins.toString port}/tcp" = { };

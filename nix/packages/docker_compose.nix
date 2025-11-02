@@ -1,19 +1,23 @@
 {
   caddyDockerImage,
-  formats,
+  writeYAMLFile,
   serviceDockerImages ? { },
 }:
 let
-  writeYAMLFile = (formats.yaml { }).generate;
-  mkService = _: dockerImage: {
-    image = "${dockerImage.imageName}:${dockerImage.imageTag}";
-    expose = builtins.attrValues dockerImage.ports;
-  };
+  mkService =
+    _: dockerImage:
+    {
+      image = "${dockerImage.imageName}:${dockerImage.imageTag}";
+    }
+    // (if dockerImage ? ports then { expose = builtins.attrValues dockerImage.ports; } else { });
   services = {
     caddy = {
       image = "${caddyDockerImage.imageName}:${caddyDockerImage.imageTag}";
       depends_on = builtins.attrNames serviceDockerImages;
-      env_file = [ ".env" ];
+      environment = {
+        ADMIN_USERNAME = "\${ADMIN_USERNAME}";
+        ADMIN_PASSWORD_HASHED = "\${ADMIN_PASSWORD_HASHED}";
+      };
       ports = [
         "80:${builtins.toString caddyDockerImage.ports.HTTP}"
         "443:${builtins.toString caddyDockerImage.ports.HTTPS}"
@@ -26,10 +30,13 @@ let
   }
   // builtins.mapAttrs mkService serviceDockerImages;
 in
-writeYAMLFile "docker_compose.yaml" {
+(writeYAMLFile "docker_compose.yaml" {
   inherit services;
   volumes = {
     "caddy_config" = { };
     "caddy_data" = { };
   };
-}
+}).overrideAttrs
+  {
+    passthru.images = [ caddyDockerImage ] ++ builtins.attrValues serviceDockerImages;
+  }

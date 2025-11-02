@@ -3,6 +3,7 @@
 
   inputs = {
     devenv.url = "github:cachix/devenv";
+    dotfiles.url = "github:jtrrll/dotfiles";
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     portfolio.url = "github:jtrrll/portfolio";
