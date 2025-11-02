@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p images
-          packageNames=( caddyDockerImage grafanaDockerImage jaegerDockerImage lokiDockerImage portfolioDockerImage prometheusDockerImage )
+          packageNames=( caddyDockerImage cronDockerImage faktoryDockerImage grafanaDockerImage lokiDockerImage mimirDockerImage otelCollectorDockerImage portfolioDockerImage postgresqlDockerImage tempoDockerImage ttydDockerImage )
           for package in "${packageNames[@]}"; do
             nix build .#${package} --out-link images/${package}
           done

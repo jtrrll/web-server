@@ -3,6 +3,7 @@
   imports = [ inputs.devenv.flakeModule ];
   perSystem =
     {
+      config,
       lib,
       pkgs,
       ...
@@ -73,9 +74,45 @@
 
           languages.nix.enable = true;
           packages = [
-            pkgs.caddy
             pkgs.docker
           ];
+
+          scripts = {
+            build-image = {
+              exec = ''
+                if [ $# -ne 1 ]; then
+                  echo "Usage: build-image <package-name>"
+                  echo "Example: build-image caddyDockerImage"
+                  exit 1
+                fi
+
+                PACKAGE_NAME="$1"
+
+                echo "Building package: $PACKAGE_NAME"
+                nix build ".#$PACKAGE_NAME"
+
+                if [ ! -L "result" ]; then
+                  echo "Error: Build failed or result symlink not found"
+                  exit 1
+                fi
+                echo "Built package: $PACKAGE_NAME"
+
+                echo "Loading image: $PACKAGE_NAME"
+                docker load < result
+              '';
+            };
+            dev-compose = {
+              exec = ''
+                ${lib.getExe (
+                  pkgs.callPackage ../apps/docker_compose.nix {
+                    dockerCompose = config.packages.dockerCompose.override {
+                      caddyDockerImage = config.packages.caddyDockerImage.dev;
+                    };
+                  }
+                )}
+              '';
+            };
+          };
         };
       };
     };
