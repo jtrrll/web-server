@@ -22,7 +22,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v20
+        uses: DeterminateSystems/nix-installer-action@v21
       - name: Build all packages
         run: |
           set -euo pipefail
@@ -37,7 +37,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v20
+        uses: DeterminateSystems/nix-installer-action@v21
       - name: Check flake
         run: nix flake check --impure
 ...
