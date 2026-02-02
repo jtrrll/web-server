@@ -1,9 +1,5 @@
 { inputs, ... }:
 {
-  imports = [
-    ./jobs
-    ./observability
-  ];
   perSystem =
     {
       config,
@@ -21,27 +17,12 @@
       );
     in
     {
-      packages = rec {
+      packages = {
         caddyDockerImage = callPackage ./caddy_docker_image.nix {
           faktoryPort = config.packages.faktoryDockerImage.ports.ui;
           grafanaPort = config.packages.grafanaDockerImage.ports.server;
-          portfolioPort = portfolioDockerImage.ports.server;
-          ttydPort = ttydDockerImage.ports.server;
-        };
-        dockerCompose = callPackage ./docker_compose.nix {
-          inherit caddyDockerImage;
-          serviceDockerImages = {
-            cron = config.packages.cronDockerImage;
-            faktory = config.packages.faktoryDockerImage;
-            grafana = config.packages.grafanaDockerImage;
-            loki = config.packages.lokiDockerImage;
-            mimir = config.packages.mimirDockerImage;
-            otelCollector = config.packages.otelCollectorDockerImage;
-            portfolio = portfolioDockerImage;
-            postgresql = postgresqlDockerImage;
-            tempo = config.packages.tempoDockerImage;
-            ttyd = ttydDockerImage;
-          };
+          portfolioPort = config.packages.portfolioDockerImage.ports.server;
+          ttydPort = config.packages.ttydDockerImage.ports.server;
         };
         portfolioDockerImage = callPackage ./portfolio_docker_image.nix {
           portfolio = inputs.portfolio.packages."x86_64-linux".default;
