@@ -11,21 +11,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  nix-flake:
-    name: Update Nix flake dependencies
+  development:
+    name: Update development dependencies
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v20
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@v21
       - name: Update flake.lock
-        uses: DeterminateSystems/update-flake-lock@v27
+        id: update
+        uses: DeterminateSystems/update-flake-lock@v28
         with:
-          pr-title: "deps: update Nix flake dependencies"
+          branch: "update_flake_lock_development"
+          inputs: devenv flake-parts import-tree justix nixpkgs snekcheck treefmt-nix
+          pr-title: "deps: update development dependencies"
           pr-labels: |
             automated
             dependencies
-            nix
           token: ${{ secrets.PR_BOT_PERSONAL_ACCESS_TOKEN }}
+      - name: Enable auto-merge
+        if: steps.update.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.PR_BOT_PERSONAL_ACCESS_TOKEN }}
+        run: gh pr merge ${{ steps.update.outputs.pull-request-number }} --auto --squash
 ...
