@@ -64,8 +64,8 @@
                     ADMIN_PASSWORD_HASHED = "\${ADMIN_PASSWORD_HASHED}";
                   };
                   ports = [
-                    "80:${builtins.toString caddyDockerImage.ports.HTTP}"
-                    "443:${builtins.toString caddyDockerImage.ports.HTTPS}"
+                    "80:${toString caddyDockerImage.ports.HTTP}"
+                    "443:${toString caddyDockerImage.ports.HTTPS}"
                   ];
                   volumes = [
                     "caddy_config:/config"

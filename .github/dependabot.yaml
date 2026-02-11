@@ -1,4 +1,3 @@
----
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -11,4 +10,3 @@ updates:
       - github-actions
     schedule:
       interval: weekly
-...

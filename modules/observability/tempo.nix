@@ -1,17 +1,20 @@
 {
   buildEnv,
   dockerTools,
+  formats,
   port ? 3200,
   runCommand,
-  writeYAMLFile,
 }:
 let
   baseImage = dockerTools.pullImage {
     imageName = "grafana/tempo";
-    imageDigest = "sha256:33975cde5fe87fbcc27942dddfded9fcecec153571a72b30b3cdcc863f7193a0";
-    sha256 = "sha256-IxfqqZoMG5GArRHGDxLI6lDZp+ZO54y/QyvbD5g18gc=";
+    finalImageTag = "2.10.0";
+    os = "linux";
+    arch = "amd64";
+    imageDigest = "sha256:0b85bc67c5c5fa6bc1f8e58a01bfeb741dff6e1c6be89d2a15be9f7ff975ff30";
+    sha256 = "sha256-FWI28Eb+3Q1EB+mUkymQCaT4XZW/PNVEttUsO4t658I=";
   };
-  tempoConfig = writeYAMLFile "config.yaml" {
+  tempoConfig = (formats.yaml { }).generate "config.yaml" {
     server.http_listen_port = port;
     distributor.receivers.otlp.protocols = {
       grpc = { };
@@ -43,7 +46,7 @@ in
     Entrypoint = [ "/tempo" ];
     Cmd = [ "-config.file=/etc/tempo/config.yaml" ];
     ExposedPorts = {
-      "${builtins.toString port}/tcp" = { };
+      "${toString port}/tcp" = { };
     };
   };
 }).overrideAttrs

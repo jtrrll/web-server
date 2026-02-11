@@ -6,8 +6,11 @@
 let
   baseImage = dockerTools.pullImage {
     imageName = "contribsys/faktory";
-    imageDigest = "sha256:37e502a3b947e030f1688d59f69e2f8ec83165ca4d0594f69cfe1a4f767d8161";
-    sha256 = "sha256-Y6yaiKOAuZb2Tt0irObh13JU5/aUl7rfzL6NHji3xAQ=";
+    finalImageTag = "1.9.3";
+    os = "linux";
+    arch = "amd64";
+    imageDigest = "sha256:ccaa5df6a445ee678a7a95822e32e3cc8a5d41d70ebda75b82111d4e678c249c";
+    sha256 = "sha256-jujSjxVH67SF+h9cBy8AUysBtYnUfiQyoyn4tkYHLMA=";
   };
 in
 (dockerTools.buildImage {
@@ -19,13 +22,13 @@ in
     Entrypoint = [ "/faktory" ];
     Cmd = [
       "-b"
-      ":${builtins.toString serverPort}"
+      ":${toString serverPort}"
       "-w"
-      ":${builtins.toString uiPort}"
+      ":${toString uiPort}"
     ];
     ExposedPorts = {
-      "${builtins.toString serverPort}/tcp" = { };
-      "${builtins.toString uiPort}/tcp" = { };
+      "${toString serverPort}/tcp" = { };
+      "${toString uiPort}/tcp" = { };
     };
   };
 }).overrideAttrs
