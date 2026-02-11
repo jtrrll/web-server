@@ -1,4 +1,3 @@
----
 name: 📗 Documentation Issue
 description: Report missing or incorrect documentation
 labels: [documentation]
@@ -7,7 +6,6 @@ body:
     attributes:
       value: |
         Thank you for submitting a documentation issue! It helps make the web server better.
-  
   - type: dropdown
     attributes:
       label: What is the type of issue?
@@ -29,4 +27,3 @@ body:
       description: If possible, please provide the URL(s) where you found this issue.
     validations:
       required: true
-...

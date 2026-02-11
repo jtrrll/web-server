@@ -1,15 +1,11 @@
----
 name: Update Dependencies
-
 on:
   schedule:
     - cron: '0 22 * * FRI'
   workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   development:
     name: Update development dependencies
@@ -33,4 +29,3 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PR_BOT_PERSONAL_ACCESS_TOKEN }}
         run: gh pr merge ${{ steps.update.outputs.pull-request-number }} --auto --squash
-...

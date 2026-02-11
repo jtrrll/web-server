@@ -1,35 +1,38 @@
 {
   buildEnv,
   dockerTools,
+  formats,
   lokiPort,
   mimirPort,
   runCommand,
   tempoPort,
-  writeYAMLFile,
   grpcPort ? 4317,
   httpPort ? 4318,
 }:
 let
   baseImage = dockerTools.pullImage {
     imageName = "otel/opentelemetry-collector-contrib";
-    imageDigest = "sha256:fe9e49c677b0e3d35bc44a49e296751edcd43718c6aaed5f5011c61cce6156ed";
-    sha256 = "sha256-x2KUh0V/Z2ynwY9S9KGEvJN1I83BQNmvemKwUQ79+HQ=";
+    finalImageTag = "0.145.0";
+    os = "linux";
+    arch = "amd64";
+    imageDigest = "sha256:ac7ad5529b8cf522aa03792bb6d667a7df7d2c3f3da40b2746c51c113ea28c8c";
+    sha256 = "sha256-UheuoS3pVf3tr0Dxp48GKdjOtPinIvJX77yXHyX6k8o=";
   };
-  config = writeYAMLFile "config.yaml" {
+  config = (formats.yaml { }).generate "config.yaml" {
     receivers.otlp.protocols = {
-      grpc.endpoint = "0.0.0.0:${builtins.toString grpcPort}";
-      http.endpoint = "0.0.0.0:${builtins.toString httpPort}";
+      grpc.endpoint = "0.0.0.0:${toString grpcPort}";
+      http.endpoint = "0.0.0.0:${toString httpPort}";
     };
     exporters = {
       otlp = {
-        endpoint = "tempo:${builtins.toString tempoPort}";
+        endpoint = "tempo:${toString tempoPort}";
         tls.insecure = true;
       };
       prometheusremotewrite = {
-        endpoint = "http://mimir:${builtins.toString mimirPort}/api/v1/push";
+        endpoint = "http://mimir:${toString mimirPort}/api/v1/push";
       };
       loki = {
-        endpoint = "http://loki:${builtins.toString lokiPort}/loki/api/v1/push";
+        endpoint = "http://loki:${toString lokiPort}/loki/api/v1/push";
       };
     };
     service = {
@@ -69,8 +72,8 @@ in
     Entrypoint = [ "/otelcol-contrib" ];
     Cmd = [ "--config=/etc/otelcol-contrib/config.yaml" ];
     ExposedPorts = {
-      "${builtins.toString grpcPort}/tcp" = { };
-      "${builtins.toString httpPort}/tcp" = { };
+      "${toString grpcPort}/tcp" = { };
+      "${toString httpPort}/tcp" = { };
     };
   };
 }).overrideAttrs

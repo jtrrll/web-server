@@ -1,19 +1,15 @@
----
 name: CI
-
 on:
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
     - cron: '0 06 * * MON'
   workflow_dispatch:
-
 concurrency:
   cancel-in-progress: true
   group: ${{ github.workflow }}-${{ github.ref }}
-
 jobs:
   build:
     name: Build
@@ -40,4 +36,3 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v21
       - name: Check flake
         run: nix flake check --impure
-...

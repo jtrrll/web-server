@@ -1,17 +1,20 @@
 {
   buildEnv,
   dockerTools,
+  formats,
   port ? 9009,
   runCommand,
-  writeYAMLFile,
 }:
 let
   baseImage = dockerTools.pullImage {
     imageName = "grafana/mimir";
-    imageDigest = "sha256:dfa02581c519a28e2ce50c7304d05a635bb1e14b36e2f8a7a54815b36d4d1f9b";
-    sha256 = "sha256-dY9OQabObJdbIrShrfjfoIRRG3RSLOHd/o02gwle/Vk=";
+    finalImageTag = "2.17.5";
+    os = "linux";
+    arch = "amd64";
+    imageDigest = "sha256:0a30b23f18ca58cf038b56caed30a4f9282da1aad9832f3208daf0b5b969f77c";
+    sha256 = "sha256-JEQvTrtHk08xFOZ4vhngLBnpI9IUhyUu1vYf0lhjrGA=";
   };
-  config = writeYAMLFile "config.yaml" {
+  config = (formats.yaml { }).generate "config.yaml" {
     target = "all";
     server.http_listen_port = port;
     common.storage = {
@@ -40,7 +43,7 @@ in
     Entrypoint = [ "/bin/mimir" ];
     Cmd = [ "-config.file=/etc/mimir/config.yaml" ];
     ExposedPorts = {
-      "${builtins.toString port}/tcp" = { };
+      "${toString port}/tcp" = { };
     };
   };
 }).overrideAttrs

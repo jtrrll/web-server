@@ -1,15 +1,11 @@
----
 name: CD
-
 on:
   schedule:
     - cron: '0 06 * * MON'
   workflow_dispatch:
-
 concurrency:
   cancel-in-progress: true
   group: ${{ github.workflow }}-${{ github.ref }}
-
 jobs:
   deploy:
     name: Deploy
@@ -33,4 +29,3 @@ jobs:
         run: echo "TODO"
       - name: Restart Docker Compose on remote server
         run: echo "TODO"
-...

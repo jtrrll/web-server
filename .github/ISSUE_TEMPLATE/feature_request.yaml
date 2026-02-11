@@ -1,4 +1,3 @@
----
 name: 🚀 Feature Request
 description: Suggest a feature, idea, or enhancement
 labels: [feature]
@@ -7,7 +6,6 @@ body:
     attributes:
       value: |
         Thank you for submitting a feature request! It helps make the web server better.
-
   - type: textarea
     attributes:
       label: What problem would this feature solve?
@@ -21,4 +19,3 @@ body:
   - type: textarea
     attributes:
       label: What alternatives have you considered?
-...
