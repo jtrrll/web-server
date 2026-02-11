@@ -15,7 +15,6 @@
             touch $out
           '';
       treefmt.programs = {
-        actionlint.enable = true;
         deadnix.enable = true;
         keep-sorted.enable = true;
         nixfmt.enable = true;
