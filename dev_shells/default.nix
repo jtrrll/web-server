@@ -11,8 +11,7 @@
     }:
     {
       devenv = {
-        modules = [
-          inputs.justix.devenvModules.default
+        modules = (lib.attrValues inputs.justix.modules.devenv) ++ [
           {
             containers = lib.mkForce { }; # Workaround to remove containers from flake checks.
           }
@@ -87,7 +86,7 @@
 
           justix = {
             enable = true;
-            justfile.config.recipes = {
+            config.recipes = {
               build-image = {
                 attributes.doc = "Builds and loads a single Docker image.";
                 commands = ''
