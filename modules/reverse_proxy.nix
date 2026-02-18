@@ -6,142 +6,157 @@
       ...
     }:
     {
-      packages.caddyDockerImage =
-        pkgs.callPackage
-          (
-            {
-              buildEnv,
-              dockerTools,
-              runCommand,
-              writeTextFile,
-              faktoryPort,
-              grafanaPort,
-              portfolioPort,
-              ttydPort,
-            }:
-            let
-              baseImage = dockerTools.pullImage {
-                imageName = "caddy";
-                imageDigest = "sha256:614bbc6da7ec42f3c76077e86f429297047680f9cb420ad0f07a8fe049193d89";
-                sha256 = "sha256-w2dNPIEQUltUSn/CfcPGxKib7fOYwKwH3LiAE2dfM1U=";
-              };
-              mkCaddyImage =
-                {
-                  dev ? false,
-                }:
-                let
-                  caddyfile = writeTextFile {
-                    name = "Caddyfile";
-                    text = ''
-                      {
-                        ${
-                          if dev then
-                            ''
-                              admin :2019 {
-                                origins admin.localhost
-                              }''
-                          else
-                            "admin off"
-                        }
-                        ${if dev then "local_certs" else ""}
-                      }
-
-                      www.${domain} {
-                        redir https://${domain}{uri}
-                      }
-
-                      ${domain} {
-                        handle {
-                          reverse_proxy portfolio:${toString portfolioPort}
-                        }
-                      }
-
-                      admin.${domain} {
-                        ${
-                          if dev then
-                            ''
-                              handle_path /caddy/* {
-                                reverse_proxy localhost:2019 {
-                                  header_down Location "^/" "/caddy/"
-                                }
-                              }''
-                          else
-                            ""
-                        }
-
-                        basicauth {
-                          {$ADMIN_USERNAME} {$ADMIN_PASSWORD_HASHED}
-                        }
-
-                        handle /grafana* {
-                          reverse_proxy grafana:${toString grafanaPort} {
-                            header_up X-WEBAUTH-USER {http.auth.user}
-                          }
-                        }
-
-                        handle /faktory* {
-                          reverse_proxy faktory:${toString faktoryPort} {
-                            header_up X-Script-Name /faktory
-                          }
-                        }
-
-                        handle_path /terminal/* {
-                          reverse_proxy ttyd:${toString ttydPort}
-                        }
-
-                        handle {
-                          respond "404 Not Found" 404
-                        }
-                      }
-                    '';
-                  };
-                  domain = if dev then "localhost" else "jtrrll.com";
-                in
-                (dockerTools.buildImage {
-                  name = "web-server-caddy";
-                  tag = "latest";
-                  fromImage = baseImage;
-
-                  copyToRoot = buildEnv {
-                    name = "image-root";
-                    paths = [
-                      (runCommand "caddyfile" { } ''
-                        mkdir -p $out/etc/caddy
-                        cp ${caddyfile} $out/etc/caddy/Caddyfile
-                      '')
-                    ];
-                  };
-                  config = {
-                    Cmd = [
-                      "caddy"
-                      "run"
-                      "--config"
-                      "/etc/caddy/Caddyfile"
-                    ];
-                    ExposedPorts = {
-                      "80/tcp" = { };
-                      "443/tcp" = { };
-                    };
-                  };
-                }).overrideAttrs
-                  {
-                    passthru.ports = {
-                      HTTP = 80;
-                      HTTPS = 443;
-                    };
-                  };
-            in
-            (mkCaddyImage { }).overrideAttrs (prev: {
-              passthru = prev.passthru // {
-                dev = mkCaddyImage { dev = true; };
-              };
-            })
-          )
+      server = {
+        services.reverseProxy = {
+          enable = true;
+          image = config.packages.caddyDockerImage;
+          ports = [
+            "80:80"
+            "443:443"
+          ];
+          volumes = [
+            "${config.packages.caddyfile}:/etc/caddy/Caddyfile:ro"
+            "caddy_config:/config"
+            "caddy_data:/data"
+          ];
+        };
+        volumes = {
+          "caddy_config" = { };
+          "caddy_data" = { };
+        };
+      };
+      packages = {
+        caddyfile = pkgs.callPackage (
           {
-            faktoryPort = config.packages.faktoryDockerImage.ports.ui;
-            grafanaPort = config.packages.grafanaDockerImage.ports.server;
-            portfolioPort = config.packages.portfolioDockerImage.ports.server;
-            ttydPort = config.packages.ttydDockerImage.ports.server;
-          };
+            writeTextFile,
+            portfolioPort,
+            grafanaPort,
+            faktoryPort,
+            ttydPort,
+          }:
+          let
+            mkCaddyfile =
+              {
+                dev ? false,
+              }:
+              writeTextFile {
+                name = "Caddyfile";
+                text =
+                  let
+                    domain = if dev then "localhost" else "jtrrll.com";
+                  in
+                  ''
+                    {
+                      ${
+                        if dev then
+                          ''
+                            admin :2019 {
+                              origins admin.localhost
+                            }''
+                        else
+                          "admin off"
+                      }
+                      ${if dev then "local_certs" else ""}
+                    }
+
+                    www.${domain} {
+                      redir https://${domain}{uri}
+                    }
+
+                    ${domain} {
+                      ${
+                        if dev then
+                          ''
+                            handle {
+                              reverse_proxy portfolio:${toString portfolioPort}
+                            }
+                          ''
+                        else
+                          ""
+                      }
+                    }
+
+                    admin.${domain} {
+                      ${
+                        if dev then
+                          ''
+                            handle_path /caddy/* {
+                              reverse_proxy localhost:2019 {
+                                header_down Location "^/" "/caddy/"
+                              }
+                            }
+                          ''
+                        else
+                          ""
+                      }
+
+                      basicauth {
+                        {$ADMIN_USERNAME} {$ADMIN_PASSWORD_HASHED}
+                      }
+
+                      ${
+                        if (config.services ? grafana && config.services.grafana.enable) then
+                          ''
+                            handle /grafana* {
+                              reverse_proxy grafana:${toString grafanaPort} {
+                                header_up X-WEBAUTH-USER {http.auth.user}
+                              }
+                            }
+                          ''
+                        else
+                          ""
+                      }
+
+                      ${
+                        if (config.services ? faktory && config.services.faktory.enable) then
+                          ''
+                            handle /faktory* {
+                              reverse_proxy faktory:${toString faktoryPort} {
+                                header_up X-Script-Name /faktory
+                              }
+                            }
+                          ''
+                        else
+                          ""
+                      }
+
+                      ${
+                        if (config.services ? terminal && config.services.terminal.enable) then
+                          ''
+                            handle_path /terminal/* {
+                              reverse_proxy terminal:${toString ttydPort}
+                            }
+                          ''
+                        else
+                          ""
+                      }
+
+                      handle {
+                        respond "404 Not Found" 404
+                      }
+                    }
+                  '';
+              };
+          in
+          (mkCaddyfile { }).overrideAttrs (prev: {
+            passthru = prev.passthru // {
+              dev = mkCaddyfile { dev = true; };
+            };
+          })
+        ) { };
+        caddyDockerImage = pkgs.callPackage (
+          {
+            dockerTools,
+          }:
+          dockerTools.pullImage {
+            imageName = "caddy";
+            finalImageTag = "latest";
+            os = "linux";
+            arch = "amd64";
+            imageDigest = "sha256:d8c17a862962def15cde69863a3a463f25a2664942eafd7bdbf050e9c3116b83";
+            sha256 = "sha256-w2dNPIEQUltUSn/CfcPGxKib7fOYwKwH3LiAE2dfM1U=";
+          }
+        ) { };
+      };
     };
 }

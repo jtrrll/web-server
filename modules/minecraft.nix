@@ -1,10 +1,14 @@
 {
   perSystem =
     {
+      config,
       pkgs,
       ...
     }:
     {
+      server.services.minecraft = {
+        image = config.packages.minecraftServerDockerImage;
+      };
       packages.minecraftServerDockerImage = pkgs.callPackage (
         { dockerTools }:
         let

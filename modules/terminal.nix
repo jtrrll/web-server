@@ -1,10 +1,14 @@
 {
   perSystem =
     {
+      config,
       pkgs,
       ...
     }:
     {
+      server.services.terminal = {
+        image = config.packages.ttydDockerImage;
+      };
       packages.ttydDockerImage =
         pkgs.callPackage
           (
@@ -32,7 +36,7 @@
                 '';
               };
             in
-            (dockerTools.buildImage {
+            (dockerTools.buildLayeredImage {
               name = "web-server-ttyd";
               tag = "latest";
               fromImage = baseImage;
