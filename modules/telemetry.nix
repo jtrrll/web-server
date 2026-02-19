@@ -1,29 +1,36 @@
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.telemetry =
     {
       config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.telemetry;
+    in
+    {
+      options.telemetry.enable = lib.mkEnableOption "telemetry services";
+      config = lib.mkIf cfg.enable {
+        services = {
+          grafana.image = self.packages.${pkgs.stdenv.system}.grafanaDockerImage;
+          loki.image = self.packages.${pkgs.stdenv.system}.lokiDockerImage;
+          mimir.image = self.packages.${pkgs.stdenv.system}.mimirDockerImage;
+          otelCollector.image = self.packages.${pkgs.stdenv.system}.otelCollectorDockerImage;
+          tempo.image = self.packages.${pkgs.stdenv.system}.tempoDockerImage;
+        };
+      };
+    };
+
+  perSystem =
+    {
       pkgs,
       ...
     }:
     {
-      server.services = {
-        grafana = {
-          enable = true;
-          image = config.packages.grafanaDockerImage;
-        };
-        loki = {
-          image = config.packages.lokiDockerImage;
-        };
-        mimir = {
-          image = config.packages.mimirDockerImage;
-        };
-        otelCollector = {
-          image = config.packages.otelCollectorDockerImage;
-        };
-        tempo = {
-          image = config.packages.tempoDockerImage;
-        };
-      };
       packages = {
         grafanaDockerImage = pkgs.callPackage (
           {

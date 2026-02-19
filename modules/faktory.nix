@@ -1,15 +1,30 @@
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.faktory =
     {
       config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.faktory;
+    in
+    {
+      options.faktory.enable = lib.mkEnableOption "a faktory service";
+      config = lib.mkIf cfg.enable {
+        services.faktory.image = self.packages.${pkgs.stdenv.system}.faktoryDockerImage;
+      };
+    };
+
+  perSystem =
+    {
       pkgs,
       ...
     }:
     {
-      server.services.faktory = {
-        enable = true;
-        image = config.packages.faktoryDockerImage;
-      };
       packages.faktoryDockerImage = pkgs.callPackage (
         { dockerTools }:
         dockerTools.pullImage {

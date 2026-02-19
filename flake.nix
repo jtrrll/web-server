@@ -48,6 +48,7 @@
       {
         imports = [
           ./dev_shells
+          ./servers
           modules-tree.result
         ];
 

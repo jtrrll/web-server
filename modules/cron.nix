@@ -1,15 +1,30 @@
-{ inputs, ... }:
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.cron =
     {
       config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.cron;
+    in
+    {
+      options.cron.enable = lib.mkEnableOption "a cron service";
+      config = lib.mkIf cfg.enable {
+        services.cron.image = self.packages.${pkgs.stdenv.system}.cronDockerImage;
+      };
+    };
+
+  perSystem =
+    {
       pkgs,
       ...
     }:
     {
-      server.services.cron = {
-        image = config.packages.cronDockerImage;
-      };
       packages.cronDockerImage = pkgs.callPackage (
         {
           busybox,

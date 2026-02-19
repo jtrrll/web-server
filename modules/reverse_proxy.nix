@@ -1,21 +1,35 @@
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.reverseProxy =
     {
       config,
+      lib,
       pkgs,
       ...
     }:
+    let
+      cfg = config.reverseProxy;
+    in
     {
-      server = {
-        services.reverseProxy = {
-          enable = true;
-          image = config.packages.caddyDockerImage;
+      options.reverseProxy = {
+        enable = lib.mkEnableOption "a reverse proxy service";
+        caddyfile = lib.mkOption {
+          type = lib.types.str;
+          description = "The content of the Caddyfile configuration";
+        };
+      };
+
+      config = lib.mkIf cfg.enable {
+        services.caddy = {
+          image = self.packages.${pkgs.stdenv.system}.caddyDockerImage;
           ports = [
             "80:80"
             "443:443"
           ];
           volumes = [
-            "${config.packages.caddyfile}:/etc/caddy/Caddyfile:ro"
+            "${pkgs.writeText "Caddyfile" cfg.caddyfile}:/etc/caddy/Caddyfile:ro"
             "caddy_config:/config"
             "caddy_data:/data"
           ];
@@ -25,6 +39,15 @@
           "caddy_data" = { };
         };
       };
+    };
+
+  perSystem =
+    {
+      config,
+      pkgs,
+      ...
+    }:
+    {
       packages = {
         caddyfile = pkgs.callPackage (
           {
@@ -59,11 +82,11 @@
                       ${if dev then "local_certs" else ""}
                     }
 
-                    www.${domain} {
-                      redir https://${domain}{uri}
+                    ${domain} {
+                      redir https://www.${domain}{uri}
                     }
 
-                    ${domain} {
+                    www.${domain} {
                       ${
                         if dev then
                           ''
@@ -95,7 +118,7 @@
                       }
 
                       ${
-                        if (config.services ? grafana && config.services.grafana.enable) then
+                        if config.telemetry.enable then
                           ''
                             handle /grafana* {
                               reverse_proxy grafana:${toString grafanaPort} {
@@ -108,7 +131,7 @@
                       }
 
                       ${
-                        if (config.services ? faktory && config.services.faktory.enable) then
+                        if config.faktory.enable then
                           ''
                             handle /faktory* {
                               reverse_proxy faktory:${toString faktoryPort} {
@@ -121,7 +144,7 @@
                       }
 
                       ${
-                        if (config.services ? terminal && config.services.terminal.enable) then
+                        if config.terminal.enable then
                           ''
                             handle_path /terminal/* {
                               reverse_proxy terminal:${toString ttydPort}

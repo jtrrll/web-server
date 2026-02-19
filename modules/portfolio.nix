@@ -1,16 +1,30 @@
-{ inputs, ... }:
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.portfolio =
     {
       config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.portfolio;
+    in
+    {
+      options.portfolio.enable = lib.mkEnableOption "a portfolio service";
+      config = lib.mkIf cfg.enable {
+        services.portfolio.image = self.packages.${pkgs.stdenv.system}.portfolioDockerImage;
+      };
+    };
+
+  perSystem =
+    {
       pkgs,
       ...
     }:
     {
-      server.services.portfolio = {
-        enable = true;
-        image = config.packages.portfolioDockerImage;
-      };
       packages.portfolioDockerImage =
         pkgs.callPackage
           (
