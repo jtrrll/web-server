@@ -177,7 +177,7 @@
             os = "linux";
             arch = "amd64";
             imageDigest = "sha256:d8c17a862962def15cde69863a3a463f25a2664942eafd7bdbf050e9c3116b83";
-            sha256 = "sha256-w2dNPIEQUltUSn/CfcPGxKib7fOYwKwH3LiAE2dfM1U=";
+            sha256 = "sha256-7bF1+AfCVhW399sl6vKLG0/oOmT4a85p0QQQ4jPET58=";
           }
         ) { };
       };

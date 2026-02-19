@@ -130,7 +130,14 @@
         cp ${deployScript} $out/deploy
         chmod +x $out/deploy
         ${lib.concatMapStringsSep "\n" (img: ''
-          cp ${img} $out/images/${lib.replaceStrings [ "/" ] [ "_" ] img.imageName}_${img.imageTag}.tar.gz
+          cp ${img} $out/images/${
+            lib.replaceStrings [ "/" "-" ] [ "_" "_" ] (
+              lib.concatStringsSep "_" [
+                img.imageName
+                img.imageTag
+              ]
+            )
+          }.tar.gz
         '') images}
       '';
   };
