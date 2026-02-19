@@ -50,16 +50,21 @@
     }:
     {
       packages = {
-        caddyfile = pkgs.callPackage (
-          {
-            text,
-            writeTextFile,
-          }:
-          writeTextFile {
-            name = "Caddyfile";
-            inherit text;
-          }
-        ) { };
+        caddyfile =
+          pkgs.callPackage
+            (
+              {
+                text,
+                writeTextFile,
+              }:
+              writeTextFile {
+                name = "Caddyfile";
+                inherit text;
+              }
+            )
+            {
+              text = "";
+            };
         caddyDockerImage = pkgs.callPackage (
           {
             dockerTools,

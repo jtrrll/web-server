@@ -87,37 +87,6 @@
           justix = {
             enable = true;
             config.recipes = {
-              build-image = {
-                attributes.doc = "Builds and loads a single Docker image.";
-                commands = ''
-                  PACKAGE_NAME={{ image-name }}
-
-                  echo "Building package: $PACKAGE_NAME"
-                  nix build ".#$PACKAGE_NAME"
-
-                  if [ ! -L "result" ]; then \
-                    echo "Error: Build failed or result symlink not found" \
-                    exit 1 \
-                  fi
-                  echo "Built package: $PACKAGE_NAME"
-
-                  echo "Loading image: $PACKAGE_NAME"
-                  docker load < result
-                '';
-                parameters = [ "image-name" ];
-              };
-              # TODO: Revist this
-              # dev-compose = {
-              #   commands = ''
-              #     ${lib.getExe (
-              #       config.apps.default.program.override {
-              #         dockerCompose = config.packages.dockerCompose.override {
-              #           caddyDockerImage = config.packages.caddyDockerImage.dev;
-              #         };
-              #       }
-              #     )}
-              #   '';
-              # };
               fmt = {
                 attributes.doc = "Formats and lints files";
                 commands = ''
