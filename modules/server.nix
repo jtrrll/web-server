@@ -103,17 +103,34 @@
         dockerCompose = self.packages.${pkgs.stdenv.system}.dockerCompose.override {
           inherit composeConfig;
         };
-        deployScript = self.packages.${pkgs.stdenv.system}.deployScript.override {
-          inherit dockerCompose images;
-        };
+
+        deployScript = pkgs.writeScript "deploy" ''
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd "$(dirname "$0")"
+
+          echo "Loading Docker images..."
+          for img in images/*.tar.gz; do
+            echo "  Loading $img..."
+            docker load < "$img"
+          done
+
+          echo "Starting services with docker compose..."
+          docker compose -f docker_compose.yaml up -d --remove-orphans
+
+          echo "Deployment complete!"
+          echo ""
+          echo "Running services:"
+          docker compose -f docker_compose.yaml ps
+        '';
       in
       pkgs.runCommand "release-bundle" { } ''
-        mkdir -p $out
-        ln -s ${dockerCompose} $out/docker-compose.yaml
-        ln -s ${deployScript} $out/deploy
         mkdir -p $out/images
+        cp ${dockerCompose} $out/docker_compose.yaml
+        cp ${deployScript} $out/deploy
+        chmod +x $out/deploy
         ${lib.concatMapStringsSep "\n" (img: ''
-          ln -s ${img} $out/images/${img.imageName}-${img.imageTag}.tar.gz
+          cp ${img} $out/images/${lib.replaceStrings [ "/" ] [ "_" ] img.imageName}_${img.imageTag}.tar.gz
         '') images}
       '';
   };
