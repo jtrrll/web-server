@@ -29,7 +29,9 @@
             "443:443"
           ];
           volumes = [
-            "${pkgs.writeText "Caddyfile" cfg.caddyfile}:/etc/caddy/Caddyfile:ro"
+            "${
+              self.packages.${pkgs.stdenv.system}.caddyfile.override { text = cfg.caddyfile; }
+            }:/etc/caddy/Caddyfile:ro"
             "caddy_config:/config"
             "caddy_data:/data"
           ];
@@ -43,7 +45,6 @@
 
   perSystem =
     {
-      config,
       pkgs,
       ...
     }:
@@ -51,121 +52,13 @@
       packages = {
         caddyfile = pkgs.callPackage (
           {
+            text,
             writeTextFile,
-            portfolioPort,
-            grafanaPort,
-            faktoryPort,
-            ttydPort,
           }:
-          let
-            mkCaddyfile =
-              {
-                dev ? false,
-              }:
-              writeTextFile {
-                name = "Caddyfile";
-                text =
-                  let
-                    domain = if dev then "localhost" else "jtrrll.com";
-                  in
-                  ''
-                    {
-                      ${
-                        if dev then
-                          ''
-                            admin :2019 {
-                              origins admin.localhost
-                            }''
-                        else
-                          "admin off"
-                      }
-                      ${if dev then "local_certs" else ""}
-                    }
-
-                    ${domain} {
-                      redir https://www.${domain}{uri}
-                    }
-
-                    www.${domain} {
-                      ${
-                        if dev then
-                          ''
-                            handle {
-                              reverse_proxy portfolio:${toString portfolioPort}
-                            }
-                          ''
-                        else
-                          ""
-                      }
-                    }
-
-                    admin.${domain} {
-                      ${
-                        if dev then
-                          ''
-                            handle_path /caddy/* {
-                              reverse_proxy localhost:2019 {
-                                header_down Location "^/" "/caddy/"
-                              }
-                            }
-                          ''
-                        else
-                          ""
-                      }
-
-                      basicauth {
-                        {$ADMIN_USERNAME} {$ADMIN_PASSWORD_HASHED}
-                      }
-
-                      ${
-                        if config.telemetry.enable then
-                          ''
-                            handle /grafana* {
-                              reverse_proxy grafana:${toString grafanaPort} {
-                                header_up X-WEBAUTH-USER {http.auth.user}
-                              }
-                            }
-                          ''
-                        else
-                          ""
-                      }
-
-                      ${
-                        if config.faktory.enable then
-                          ''
-                            handle /faktory* {
-                              reverse_proxy faktory:${toString faktoryPort} {
-                                header_up X-Script-Name /faktory
-                              }
-                            }
-                          ''
-                        else
-                          ""
-                      }
-
-                      ${
-                        if config.terminal.enable then
-                          ''
-                            handle_path /terminal/* {
-                              reverse_proxy terminal:${toString ttydPort}
-                            }
-                          ''
-                        else
-                          ""
-                      }
-
-                      handle {
-                        respond "404 Not Found" 404
-                      }
-                    }
-                  '';
-              };
-          in
-          (mkCaddyfile { }).overrideAttrs (prev: {
-            passthru = prev.passthru // {
-              dev = mkCaddyfile { dev = true; };
-            };
-          })
+          writeTextFile {
+            name = "Caddyfile";
+            inherit text;
+          }
         ) { };
         caddyDockerImage = pkgs.callPackage (
           {
