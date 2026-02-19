@@ -41,7 +41,14 @@
                     ];
                   };
                   environment = lib.mkOption {
-                    type = lib.types.attrsOf lib.types.str;
+                    type = lib.types.attrsOf (
+                      lib.types.oneOf [
+                        lib.types.str
+                        lib.types.bool
+                        lib.types.int
+                        lib.types.float
+                      ]
+                    );
                     default = { };
                     description = "Environment variables passed to the container";
                   };
@@ -122,12 +129,12 @@
           done
 
           echo "Starting services with docker compose..."
-          docker compose -f "$BUNDLE_DIR/docker_compose.yaml" up -d --remove-orphans
+          docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" up -d --remove-orphans
 
           echo "Deployment complete!"
           echo ""
           echo "Running services:"
-          docker compose -f "$BUNDLE_DIR/docker_compose.yaml" ps
+          docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" ps
         '';
       in
       pkgs.runCommand "release-bundle" { } ''

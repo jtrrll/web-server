@@ -35,10 +35,6 @@
                       }
                     }
 
-                    ${domain} {
-                      redir https://www.${domain}{uri}
-                    }
-
                     www.${domain} {
                       handle {
                         reverse_proxy portfolio:8080
@@ -79,14 +75,25 @@
                         respond "404 Not Found" 404
                       }
                     }
+
+                    *.${domain} {
+                      redir https://www.${domain}{uri}
+                    }
                   '';
                 };
                 services.caddy.environment = {
                   ADMIN_USERNAME = "\${ADMIN_USERNAME}";
                   ADMIN_PASSWORD_HASHED = "\${ADMIN_PASSWORD_HASHED}";
                 };
-                telemetry.enable = true;
+
                 faktory.enable = true;
+
+                telemetry.enable = true;
+                services.grafana.environment = {
+                  GF_AUTH_PROXY_ENABLED = true;
+                  GF_SERVER_ROOT_URL = "/grafana";
+                  GF_SERVER_SERVE_FROM_SUB_PATH = true;
+                };
 
                 portfolio.enable = true;
               }
