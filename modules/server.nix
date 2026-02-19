@@ -40,6 +40,11 @@
                       "data:/var/lib/data"
                     ];
                   };
+                  environment = lib.mkOption {
+                    type = lib.types.attrsOf lib.types.str;
+                    default = { };
+                    description = "Environment variables passed to the container";
+                  };
                 };
               }
             );
@@ -89,7 +94,8 @@
           }
           // lib.optionalAttrs (svc.ports != [ ]) { inherit (svc) ports; }
           // lib.optionalAttrs (svc.volumes != [ ]) { inherit (svc) volumes; }
-          // lib.optionalAttrs (svc.networks != [ ]) { inherit (svc) networks; };
+          // lib.optionalAttrs (svc.networks != [ ]) { inherit (svc) networks; }
+          // lib.optionalAttrs (svc.environment != { }) { inherit (svc) environment; };
 
         services = lib.mapAttrs mkService resolved.config.services;
         inherit (resolved.config) networks volumes;
@@ -107,21 +113,21 @@
         deployScript = pkgs.writeScript "deploy" ''
           #!/usr/bin/env bash
           set -euo pipefail
-          cd "$(dirname "$0")"
+          BUNDLE_DIR="$(dirname "$0")"
 
           echo "Loading Docker images..."
-          for img in images/*.tar.gz; do
+          for img in "$BUNDLE_DIR"/images/*.tar.gz; do
             echo "  Loading $img..."
             docker load < "$img"
           done
 
           echo "Starting services with docker compose..."
-          docker compose -f docker_compose.yaml up -d --remove-orphans
+          docker compose -f "$BUNDLE_DIR/docker_compose.yaml" up -d --remove-orphans
 
           echo "Deployment complete!"
           echo ""
           echo "Running services:"
-          docker compose -f docker_compose.yaml ps
+          docker compose -f "$BUNDLE_DIR/docker_compose.yaml" ps
         '';
       in
       pkgs.runCommand "release-bundle" { } ''

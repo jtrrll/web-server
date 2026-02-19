@@ -81,6 +81,10 @@
                     }
                   '';
                 };
+                services.caddy.environment = {
+                  ADMIN_USERNAME = "\${ADMIN_USERNAME}";
+                  ADMIN_PASSWORD_HASHED = "\${ADMIN_PASSWORD_HASHED}";
+                };
                 telemetry.enable = true;
                 faktory.enable = true;
 
