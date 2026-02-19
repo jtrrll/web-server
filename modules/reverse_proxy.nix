@@ -1,147 +1,83 @@
+{ inputs, self, ... }:
 {
-  perSystem =
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.reverseProxy =
     {
       config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.reverseProxy;
+    in
+    {
+      options.reverseProxy = {
+        enable = lib.mkEnableOption "a reverse proxy service";
+        caddyfile = lib.mkOption {
+          type = lib.types.str;
+          description = "The content of the Caddyfile configuration";
+        };
+      };
+
+      config = lib.mkIf cfg.enable {
+        services.caddy = {
+          image = self.packages.${pkgs.stdenv.system}.caddyDockerImage;
+          ports = [
+            "80:80"
+            "443:443"
+          ];
+          volumes = [
+            "${
+              self.packages.${pkgs.stdenv.system}.caddyfile.override { text = cfg.caddyfile; }
+            }:/etc/caddy/Caddyfile:ro"
+            "caddy_config:/config"
+            "caddy_data:/data"
+          ];
+        };
+        volumes = {
+          "caddy_config" = { };
+          "caddy_data" = { };
+        };
+      };
+    };
+
+  perSystem =
+    {
       pkgs,
       ...
     }:
     {
-      packages.caddyDockerImage =
-        pkgs.callPackage
-          (
+      packages = {
+        caddyfile =
+          pkgs.callPackage
+            (
+              {
+                text,
+                writeTextFile,
+              }:
+              writeTextFile {
+                name = "Caddyfile";
+                inherit text;
+              }
+            )
             {
-              buildEnv,
-              dockerTools,
-              runCommand,
-              writeTextFile,
-              faktoryPort,
-              grafanaPort,
-              portfolioPort,
-              ttydPort,
-            }:
-            let
-              baseImage = dockerTools.pullImage {
-                imageName = "caddy";
-                imageDigest = "sha256:614bbc6da7ec42f3c76077e86f429297047680f9cb420ad0f07a8fe049193d89";
-                sha256 = "sha256-w2dNPIEQUltUSn/CfcPGxKib7fOYwKwH3LiAE2dfM1U=";
-              };
-              mkCaddyImage =
-                {
-                  dev ? false,
-                }:
-                let
-                  caddyfile = writeTextFile {
-                    name = "Caddyfile";
-                    text = ''
-                      {
-                        ${
-                          if dev then
-                            ''
-                              admin :2019 {
-                                origins admin.localhost
-                              }''
-                          else
-                            "admin off"
-                        }
-                        ${if dev then "local_certs" else ""}
-                      }
-
-                      www.${domain} {
-                        redir https://${domain}{uri}
-                      }
-
-                      ${domain} {
-                        handle {
-                          reverse_proxy portfolio:${toString portfolioPort}
-                        }
-                      }
-
-                      admin.${domain} {
-                        ${
-                          if dev then
-                            ''
-                              handle_path /caddy/* {
-                                reverse_proxy localhost:2019 {
-                                  header_down Location "^/" "/caddy/"
-                                }
-                              }''
-                          else
-                            ""
-                        }
-
-                        basicauth {
-                          {$ADMIN_USERNAME} {$ADMIN_PASSWORD_HASHED}
-                        }
-
-                        handle /grafana* {
-                          reverse_proxy grafana:${toString grafanaPort} {
-                            header_up X-WEBAUTH-USER {http.auth.user}
-                          }
-                        }
-
-                        handle /faktory* {
-                          reverse_proxy faktory:${toString faktoryPort} {
-                            header_up X-Script-Name /faktory
-                          }
-                        }
-
-                        handle_path /terminal/* {
-                          reverse_proxy ttyd:${toString ttydPort}
-                        }
-
-                        handle {
-                          respond "404 Not Found" 404
-                        }
-                      }
-                    '';
-                  };
-                  domain = if dev then "localhost" else "jtrrll.com";
-                in
-                (dockerTools.buildImage {
-                  name = "web-server-caddy";
-                  tag = "latest";
-                  fromImage = baseImage;
-
-                  copyToRoot = buildEnv {
-                    name = "image-root";
-                    paths = [
-                      (runCommand "caddyfile" { } ''
-                        mkdir -p $out/etc/caddy
-                        cp ${caddyfile} $out/etc/caddy/Caddyfile
-                      '')
-                    ];
-                  };
-                  config = {
-                    Cmd = [
-                      "caddy"
-                      "run"
-                      "--config"
-                      "/etc/caddy/Caddyfile"
-                    ];
-                    ExposedPorts = {
-                      "80/tcp" = { };
-                      "443/tcp" = { };
-                    };
-                  };
-                }).overrideAttrs
-                  {
-                    passthru.ports = {
-                      HTTP = 80;
-                      HTTPS = 443;
-                    };
-                  };
-            in
-            (mkCaddyImage { }).overrideAttrs (prev: {
-              passthru = prev.passthru // {
-                dev = mkCaddyImage { dev = true; };
-              };
-            })
-          )
+              text = "";
+            };
+        caddyDockerImage = pkgs.callPackage (
           {
-            faktoryPort = config.packages.faktoryDockerImage.ports.ui;
-            grafanaPort = config.packages.grafanaDockerImage.ports.server;
-            portfolioPort = config.packages.portfolioDockerImage.ports.server;
-            ttydPort = config.packages.ttydDockerImage.ports.server;
-          };
+            dockerTools,
+          }:
+          dockerTools.pullImage {
+            imageName = "caddy";
+            finalImageTag = "latest";
+            os = "linux";
+            arch = "amd64";
+            imageDigest = "sha256:d8c17a862962def15cde69863a3a463f25a2664942eafd7bdbf050e9c3116b83";
+            sha256 = "sha256-7bF1+AfCVhW399sl6vKLG0/oOmT4a85p0QQQ4jPET58=";
+          }
+        ) { };
+      };
     };
 }

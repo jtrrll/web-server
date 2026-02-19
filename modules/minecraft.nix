@@ -1,4 +1,27 @@
+{ inputs, self, ... }:
 {
+  imports = [ inputs.flake-parts.flakeModules.modules ];
+
+  flake.modules.server.minecraft =
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
+    let
+      cfg = config.minecraft;
+    in
+    {
+      options.minecraft.enable = lib.mkEnableOption "a Minecraft server";
+      config = lib.mkIf cfg.enable {
+        services.minecraft = {
+          image = self.packages.${pkgs.stdenv.system}.minecraftServerDockerImage;
+          ports = [ "25565:25565" ];
+        };
+      };
+    };
+
   perSystem =
     {
       pkgs,
