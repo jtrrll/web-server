@@ -117,31 +117,11 @@
           inherit composeConfig;
         };
 
-        deployScript = pkgs.writeScript "deploy" ''
-          #!/usr/bin/env bash
-          set -euo pipefail
-          BUNDLE_DIR="$(dirname "$0")"
-
-          echo "Loading Docker images..."
-          for img in "$BUNDLE_DIR"/images/*.tar.gz; do
-            echo "  Loading $img..."
-            docker load < "$img"
-          done
-
-          echo "Starting services with docker compose..."
-          docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" up -d --remove-orphans
-
-          echo "Deployment complete!"
-          echo ""
-          echo "Running services:"
-          docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" ps
-        '';
       in
       pkgs.runCommand "release-bundle" { } ''
         mkdir -p $out/images
         cp ${dockerCompose} $out/docker_compose.yaml
-        cp ${deployScript} $out/deploy
-        chmod +x $out/deploy
+        cp ${self.packages.${pkgs.stdenv.system}.deployScript}/bin/deploy $out/deploy
         ${lib.concatMapStringsSep "\n" (img: ''
           cp ${img} $out/images/${
             lib.replaceStrings [ "/" "-" ] [ "_" "_" ] (
@@ -156,43 +136,50 @@
   };
 
   perSystem =
-    { config, pkgs, ... }:
+    { pkgs, ... }:
     {
       packages = {
-        deployScript =
+        deployScript = pkgs.callPackage (
+          { writeShellApplication }:
+          writeShellApplication {
+            name = "deploy";
+            text = ''
+              BUNDLE_DIR="$(dirname "$0")"
+
+              echo "Loading Docker images..."
+              for img in "$BUNDLE_DIR"/images/*.tar.gz; do
+                echo "  Loading $img..."
+                docker load < "$img"
+              done
+
+              echo "Starting services with docker compose..."
+              docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" up -d --remove-orphans
+
+              echo "Deployment complete!"
+              echo ""
+              echo "Running services:"
+              docker compose --project-directory . --file "$BUNDLE_DIR/docker_compose.yaml" ps
+            '';
+          }
+        ) { };
+        dockerCompose =
           pkgs.callPackage
             (
               {
-                dockerCompose,
-                images,
-                lib,
-                writeShellScript,
+                composeConfig,
+                formats,
+                runCommand,
+                yamlfmt,
               }:
-              writeShellScript "deploy" ''
-                set -euo pipefail
-
-                echo "Loading Docker images..."
-                ${lib.concatMapStringsSep "\n" (img: ''
-                  echo "  Loading ${img.imageName}:${img.imageTag}..."
-                  docker load < ${img}
-                '') images}
-
-                echo "Starting services with docker compose..."
-                docker compose -f ${dockerCompose} up -d --remove-orphans
-
-                echo "Deployment complete!"
-                echo ""
-                echo "Running services:"
-                docker compose -f ${dockerCompose} ps
-              ''
+              runCommand "docker_compose.yaml"
+                {
+                  nativeBuildInputs = [ yamlfmt ];
+                }
+                ''
+                  cp ${(formats.yaml { }).generate "docker_compose.yaml" composeConfig} $out
+                  yamlfmt -in $out
+                ''
             )
-            {
-              inherit (config.packages) dockerCompose;
-              images = [ ];
-            };
-        dockerCompose =
-          pkgs.callPackage
-            ({ composeConfig, formats }: (formats.yaml { }).generate "docker_compose.yaml" composeConfig)
             {
               composeConfig = { };
             };

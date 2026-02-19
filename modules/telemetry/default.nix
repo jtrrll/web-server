@@ -14,15 +14,68 @@
     in
     {
       options.telemetry.enable = lib.mkEnableOption "telemetry services";
-      config = lib.mkIf cfg.enable {
-        services = {
-          grafana.image = self.packages.${pkgs.stdenv.system}.grafanaDockerImage;
-          loki.image = self.packages.${pkgs.stdenv.system}.lokiDockerImage;
-          mimir.image = self.packages.${pkgs.stdenv.system}.mimirDockerImage;
-          otelCollector.image = self.packages.${pkgs.stdenv.system}.otelCollectorDockerImage;
-          tempo.image = self.packages.${pkgs.stdenv.system}.tempoDockerImage;
-        };
-      };
+      config = lib.mkIf cfg.enable (
+        lib.mkMerge [
+          {
+            volumes = {
+              loki-data = { };
+              mimir-data = { };
+              tempo-data = { };
+            };
+
+            services = {
+              grafana = {
+                image = self.packages.${pkgs.stdenv.system}.grafanaDockerImage;
+                volumes = [
+                  "${./grafana_datasources.yaml}:/etc/grafana/provisioning/datasources/datasources.yaml:ro"
+                ];
+              };
+
+              loki = {
+                image = self.packages.${pkgs.stdenv.system}.lokiDockerImage;
+                volumes = [
+                  "${./loki_config.yaml}:/etc/loki/config.yaml:ro"
+                  "loki-data:/loki"
+                ];
+                environment.LOKI_CONFIG_FILE = "/etc/loki/config.yaml";
+              };
+
+              mimir = {
+                image = self.packages.${pkgs.stdenv.system}.mimirDockerImage;
+                volumes = [
+                  "${./mimir_config.yaml}:/etc/mimir/config.yaml:ro"
+                  "mimir-data:/data"
+                ];
+                environment.MIMIR_CONFIG_FILE = "/etc/mimir/config.yaml";
+              };
+
+              otelCollector = {
+                image = self.packages.${pkgs.stdenv.system}.otelCollectorDockerImage;
+                volumes = [
+                  "${./otel_collector_config.yaml}:/etc/otelcol-contrib/config.yaml:ro"
+                ];
+              };
+
+              tempo = {
+                image = self.packages.${pkgs.stdenv.system}.tempoDockerImage;
+                volumes = [
+                  "${./tempo_config.yaml}:/etc/tempo/config.yaml:ro"
+                  "tempo-data:/tmp/tempo"
+                ];
+                environment.TEMPO_CONFIG_FILE = "/etc/tempo/config.yaml";
+              };
+            };
+          }
+          {
+            services = lib.mapAttrs (name: service: {
+              environment = {
+                OTEL_SERVICE_NAME = name;
+                OTEL_RESOURCE_ATTRIBUTES = "service.version=${service.image.imageTag},deployment.environment=\${DEPLOYMENT_ENV}";
+              };
+            }) config.services;
+          }
+        ]
+      );
     };
 
   perSystem =

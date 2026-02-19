@@ -86,13 +86,19 @@
                   ADMIN_PASSWORD_HASHED = "\${ADMIN_PASSWORD_HASHED}";
                 };
 
-                faktory.enable = true;
+                jobs.enable = true;
 
                 telemetry.enable = true;
-                services.grafana.environment = {
-                  GF_AUTH_PROXY_ENABLED = true;
-                  GF_SERVER_ROOT_URL = "/grafana";
-                  GF_SERVER_SERVE_FROM_SUB_PATH = true;
+                services = {
+                  grafana.environment = {
+                    GF_AUTH_PROXY_ENABLED = true;
+                    GF_SERVER_ROOT_URL = "/grafana";
+                    GF_SERVER_SERVE_FROM_SUB_PATH = true;
+                  };
+                  portfolio.environment = {
+                    OTEL_EXPORTER_OTLP_ENDPOINT = "http://otelCollector:4318";
+                    OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf";
+                  };
                 };
 
                 portfolio.enable = true;
