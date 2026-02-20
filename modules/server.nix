@@ -52,6 +52,11 @@
                     default = { };
                     description = "Environment variables passed to the container";
                   };
+                  command = lib.mkOption {
+                    type = lib.types.nullOr (lib.types.listOf lib.types.str);
+                    default = null;
+                    description = "Command to run in the container";
+                  };
                 };
               }
             );
@@ -102,7 +107,8 @@
           // lib.optionalAttrs (svc.ports != [ ]) { inherit (svc) ports; }
           // lib.optionalAttrs (svc.volumes != [ ]) { inherit (svc) volumes; }
           // lib.optionalAttrs (svc.networks != [ ]) { inherit (svc) networks; }
-          // lib.optionalAttrs (svc.environment != { }) { inherit (svc) environment; };
+          // lib.optionalAttrs (svc.environment != { }) { inherit (svc) environment; }
+          // lib.optionalAttrs (svc.command != null) { inherit (svc) command; };
 
         services = lib.mapAttrs mkService resolved.config.services;
         inherit (resolved.config) networks volumes;
