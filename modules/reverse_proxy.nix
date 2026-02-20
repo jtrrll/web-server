@@ -56,14 +56,31 @@
               {
                 text,
                 writeTextFile,
+                runCommand,
+                caddy,
               }:
-              writeTextFile {
-                name = "Caddyfile";
-                inherit text;
-              }
+              runCommand "Caddyfile"
+                {
+                  nativeBuildInputs = [ caddy ];
+                }
+                ''
+                  cp ${
+                    writeTextFile {
+                      name = "Caddyfile";
+                      inherit text;
+                    }
+                  } temp
+                  chmod +w temp
+                  caddy fmt --overwrite temp
+                  mv temp $out
+                ''
             )
             {
-              text = "";
+              text = ''
+                localhost
+
+                respond "Hello, world!"
+              '';
             };
         caddyDockerImage = pkgs.callPackage (
           {
